@@ -56,14 +56,14 @@ message(sprintf("Dataset final combinado: %d janelas prontas para treino.", nrow
 
 # Define as listas de preditores (features)
 cols_baseline <- c(
-  "acc_mean", "acc_sd", "acc_median", "acc_iqr", "acc_max", "acc_min", 
+  "acc_mean", "acc_sd", "acc_median", "acc_iqr", "acc_max", "acc_min",
   "acc_rms", "acc_entropy", "acc_zcr",
   "gyro_mean", "gyro_sd", "gyro_rms", "gyro_entropy", "gyro_zcr"
 )
 
 cols_topological <- c(
-  "n_nodes", "n_edges", "mean_degree", "sd_degree", "max_degree", 
-  "degree_exp", "density", "clustering", "mean_path", "diameter", 
+  "n_nodes", "n_edges", "mean_degree", "sd_degree", "max_degree",
+  "degree_exp", "density", "clustering", "mean_path", "diameter",
   "mean_betw", "max_betw", "mean_close", "degree_entropy", "modularity", "sw_index"
 )
 
@@ -102,9 +102,9 @@ set.seed(123)
 message("Treinando Modelo A: Features Clássicas (Baseline)...")
 formula_base <- as.formula(paste("activity_name ~", paste(cols_baseline, collapse = " + ")))
 rf_base <- randomForest(
-  formula_base, 
-  data = train_data, 
-  ntree = 300, 
+  formula_base,
+  data = train_data,
+  ntree = 300,
   importance = TRUE
 )
 
@@ -112,9 +112,9 @@ rf_base <- randomForest(
 message("Treinando Modelo B: Features Topológicas (Visibility Graph)...")
 formula_topo <- as.formula(paste("activity_name ~", paste(cols_topological, collapse = " + ")))
 rf_topo <- randomForest(
-  formula_topo, 
-  data = train_data, 
-  ntree = 300, 
+  formula_topo,
+  data = train_data,
+  ntree = 300,
   importance = TRUE
 )
 
@@ -123,9 +123,9 @@ message("Treinando Modelo C: Combinado (Baseline + Topológicas)...")
 cols_all <- c(cols_baseline, cols_topological)
 formula_all <- as.formula(paste("activity_name ~", paste(cols_all, collapse = " + ")))
 rf_all <- randomForest(
-  formula_all, 
-  data = train_data, 
-  ntree = 300, 
+  formula_all,
+  data = train_data,
+  ntree = 300,
   importance = TRUE
 )
 
@@ -136,11 +136,16 @@ rf_all <- randomForest(
 evaluate_model <- function(model, test_data) {
   preds <- predict(model, newdata = test_data)
   cm <- confusionMatrix(preds, test_data$activity_name)
-  
+
+  metricas_por_classe <- as.data.frame(cm$byClass)
+
   return(list(
-    accuracy = as.numeric(cm$overall["Accuracy"]),
-    kappa    = as.numeric(cm$overall["Kappa"]),
-    matrix   = cm$table
+    accuracy  = as.numeric(cm$overall["Accuracy"]),
+    kappa     = as.numeric(cm$overall["Kappa"]),
+    precision = mean(metricas_por_classe$Precision, na.rm = TRUE),
+    recall    = mean(metricas_por_classe$Recall, na.rm = TRUE),
+    f1_score  = mean(metricas_por_classe$F1, na.rm = TRUE),
+    matrix    = cm$table
   ))
 }
 
@@ -149,9 +154,29 @@ eval_topo <- evaluate_model(rf_topo, test_data)
 eval_all  <- evaluate_model(rf_all,  test_data)
 
 message("\n=== RESULTADOS NO CONJUNTO DE TESTE (SUBJECT-INDEPENDENT) ===")
-message(sprintf("Modelo A (Baseline)    : Acurácia = %.2f%% | Kappa = %.4f", eval_base$accuracy * 100, eval_base$kappa))
-message(sprintf("Modelo B (Topológicas) : Acurácia = %.2f%% | Kappa = %.4f", eval_topo$accuracy * 100, eval_topo$kappa))
-message(sprintf("Modelo C (Combinado)   : Acurácia = %.2f%% | Kappa = %.4f", eval_all$accuracy * 100, eval_all$kappa))
+
+# Tabela consolidada com todas as métricas (acurácia, kappa, precision, recall, F1)
+# Precision/Recall/F1 são a média macro entre as 6 classes de transição.
+tabela_metricas <- data.frame(
+  Modelo    = c("A (Baseline)", "B (Topológicas)", "C (Combinado)"),
+  Acuracia  = c(eval_base$accuracy,  eval_topo$accuracy,  eval_all$accuracy)  * 100,
+  Kappa     = c(eval_base$kappa,     eval_topo$kappa,     eval_all$kappa),
+  Precision = c(eval_base$precision, eval_topo$precision, eval_all$precision),
+  Recall    = c(eval_base$recall,    eval_topo$recall,    eval_all$recall),
+  F1        = c(eval_base$f1_score,  eval_topo$f1_score,  eval_all$f1_score)
+)
+
+print(
+  transform(
+    tabela_metricas,
+    Acuracia  = sprintf("%.2f%%", Acuracia),
+    Kappa     = sprintf("%.4f", Kappa),
+    Precision = sprintf("%.4f", Precision),
+    Recall    = sprintf("%.4f", Recall),
+    F1        = sprintf("%.4f", F1)
+  ),
+  row.names = FALSE
+)
 
 # -----------------------------------------------------------------------------
 # 5. Visualizações
@@ -162,7 +187,7 @@ if (!dir.exists(fig_dir)) dir.create(fig_dir, recursive = TRUE)
 
 # ---- Figura 6: Comparação de Acurácia ----
 df_metrics <- data.frame(
-  Modelo = factor(c("Baseline", "Topológicas (VG)", "Combinado"), 
+  Modelo = factor(c("Baseline", "Topológicas (VG)", "Combinado"),
                   levels = c("Baseline", "Topológicas (VG)", "Combinado")),
   Acuracia = c(eval_base$accuracy, eval_topo$accuracy, eval_all$accuracy) * 100
 )
@@ -207,6 +232,32 @@ p7 <- ggplot(var_imp, aes(x = reorder(Feature, MeanDecreaseGini), y = MeanDecrea
   theme(legend.position = "bottom", plot.title = element_text(face = "bold"))
 
 ggsave(file.path(fig_dir, "fig7_variable_importance.png"), p7, width = 9, height = 6, dpi = 150)
+
+# ---- Figura 8: Matriz de Confusão (Modelo Combinado) ----
+# Compara as predições do melhor modelo (C) com as classes reais no teste.
+cm_df <- as.data.frame(eval_all$matrix)
+
+p8 <- ggplot(cm_df, aes(x = Reference, y = Prediction, fill = Freq)) +
+  geom_tile(color = "white", linewidth = 1) +
+  geom_text(aes(label = Freq),
+            color = ifelse(cm_df$Freq > mean(cm_df$Freq), "white", "black"),
+            size = 4, fontface = "bold") +
+  scale_fill_gradient(low = "#F3F6F8", high = "#1D9E75") +
+  labs(
+    title = "Matriz de Confusão — Modelo Combinado (Random Forest)",
+    subtitle = "Avaliação Subject-Independent no conjunto de teste",
+    x = "Classe Real (Ground Truth)",
+    y = "Classe Prevista pelo Modelo",
+    fill = "Frequência"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title  = element_text(face = "bold"),
+    panel.grid  = element_blank()
+  )
+
+ggsave(file.path(fig_dir, "fig8_confusion_matrix.png"), p8, width = 8, height = 6, dpi = 150)
 
 message(sprintf("\nGráficos de resultados salvos em: %s", fig_dir))
 message("\n=== PIPELINE CONCLUÍDO COM SUCESSO! ===")
