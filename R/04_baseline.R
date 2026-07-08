@@ -82,7 +82,7 @@ extract_baseline_features <- function(
   
   # O dplyr agrupa por janela e extrai todas as features rapidamente
   baseline_features <- windows_df |>
-    group_by(exp_id, user_id, activity_id, activity_name, window_id) |>
+    group_by(exp_id, user_id, activity_id, activity_name, seg_id, window_id) |>
     summarise(
       # --- Features para a Magnitude do Acelerômetro ---
       acc_mean    = mean(acc_mag, na.rm = TRUE),
@@ -110,7 +110,7 @@ extract_baseline_features <- function(
   message(sprintf(
     "Features clássicas extraídas: %d janelas × %d features em %.1fs",
     nrow(baseline_features),
-    ncol(baseline_features) - 5, # Desconta as 5 colunas de identificação
+    ncol(baseline_features) - 6, # Desconta as 6 colunas de identificação
     elapsed
   ))
   

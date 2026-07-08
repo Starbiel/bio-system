@@ -215,6 +215,12 @@ segment_transitions <- function(signal_df, labels_row) {
     idx    <- n_start[i]:(n_start[i] + WIN_SAMPLES - 1)
     window <- segment[idx, ]
     window$window_id    <- i
+    # seg_id identifica unicamente o SEGMENTO dentro de um experimento.
+    # O sample inicial (start) nunca se repete entre segmentos do mesmo
+    # experimento, então (exp_id, seg_id, window_id) é uma chave única de janela.
+    # Sem isso, o window_id reinicia em 1 a cada segmento e colide entre
+    # atividades diferentes, misturando sinais na construção do grafo.
+    window$seg_id       <- start
     window$activity_id  <- labels_row$activity_id
     window$activity_name <- LABEL_NAMES[as.character(labels_row$activity_id)]
     window$exp_id       <- labels_row$exp_id

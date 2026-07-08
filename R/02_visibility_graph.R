@@ -180,6 +180,7 @@ attach_metadata <- function(g, meta) {
   graph_attr(g, "activity_name") <- meta$activity_name
   graph_attr(g, "user_id")       <- meta$user_id
   graph_attr(g, "exp_id")        <- meta$exp_id
+  graph_attr(g, "seg_id")        <- meta$seg_id
   graph_attr(g, "window_id")     <- meta$window_id
   return(g)
 }
@@ -205,7 +206,7 @@ build_all_graphs <- function(
 
   # Identifica janelas únicas
   window_keys <- windows_df |>
-    distinct(exp_id, user_id, window_id, activity_id, activity_name)
+    distinct(exp_id, user_id, seg_id, window_id, activity_id, activity_name)
 
   n_windows <- nrow(window_keys)
   message(sprintf("Total de janelas: %d\n", n_windows))
@@ -230,6 +231,7 @@ build_all_graphs <- function(
       filter(
         exp_id    == key$exp_id,
         user_id   == key$user_id,
+        seg_id    == key$seg_id,
         window_id == key$window_id
       ) |>
       pull(!!signal_col)
@@ -351,6 +353,20 @@ graphs <- build_all_graphs(
   signal_col = "acc_mag",
   vg_type    = "nvg"
 )
+
+# Verificação de sanidade: cada grafo deve ter exatamente WIN_SAMPLES (128) nós.
+# Se algum grafo tiver n_nodes múltiplo de 128 (256, 384, ...), significa que a
+# chave de janela voltou a colidir e sinais de segmentos distintos foram unidos.
+node_counts <- vapply(graphs, vcount, integer(1))
+n_bad <- sum(node_counts != 128)
+if (n_bad > 0) {
+  warning(sprintf(
+    "%d grafos NÃO têm 128 nós (janelas coladas?). Distribuição: %s",
+    n_bad, paste(sort(unique(node_counts)), collapse = ", ")
+  ))
+} else {
+  message("OK: todos os grafos têm exatamente 128 nós (uma janela = um grafo).")
+}
 
 # Inspeção rápida dos primeiros grafos
 message("Resumo dos primeiros 5 grafos:")

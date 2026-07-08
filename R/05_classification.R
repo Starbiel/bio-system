@@ -42,7 +42,7 @@ feat_topo <- readRDS(FILE_TOPO)
 feat_base <- readRDS(FILE_BASE)
 
 # Chaves para juntar (identificadores únicos de cada janela)
-keys <- c("exp_id", "user_id", "window_id", "activity_id", "activity_name")
+keys <- c("exp_id", "user_id", "seg_id", "window_id", "activity_id", "activity_name")
 
 # Junta os dois conjuntos de dados
 # Garante que as linhas comparadas são EXATAMENTE as mesmas

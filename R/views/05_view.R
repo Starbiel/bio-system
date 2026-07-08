@@ -10,7 +10,7 @@ library(tidyr)
 # 1. Carrega e une os dados
 feat_topo <- readRDS("output/features_topological.rds")
 feat_base <- readRDS("output/features_baseline.rds")
-dataset <- inner_join(feat_base, feat_topo, by = c("exp_id", "user_id", "window_id", "activity_id", "activity_name")) |>
+dataset <- inner_join(feat_base, feat_topo, by = c("exp_id", "user_id", "seg_id", "window_id", "activity_id", "activity_name")) |>
   drop_na() |> mutate(activity_name = as.factor(activity_name))
 
 # 2. Divisão treino/teste rápida e treino do modelo

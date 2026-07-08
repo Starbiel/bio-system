@@ -12,8 +12,9 @@ windows_df <- readRDS("output/windows_preprocessed.rds")
 # 2. Pega o primeiro grafo e seu sinal correspondente (reduzido para 40 amostras para clareza)
 g_exemplo  <- grafos[[1]]
 sinal_orig <- windows_df |> 
-  filter(exp_id == graph_attr(g_exemplo, "exp_id"), 
-         window_id == graph_attr(g_exemplo, "window_id")) |> 
+  filter(exp_id == graph_attr(g_exemplo, "exp_id"),
+         seg_id == graph_attr(g_exemplo, "seg_id"),
+         window_id == graph_attr(g_exemplo, "window_id")) |>
   pull(acc_mag) |> scale() |> as.numeric()
 
 amostras <- 40

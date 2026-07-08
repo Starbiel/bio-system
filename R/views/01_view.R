@@ -10,7 +10,7 @@ windows_df <- readRDS("output/windows_preprocessed.rds")
 # 2. Isola apenas uma janela específica da atividade "sit-to-stand"
 exemplo_sinal <- windows_df |>
   dplyr::filter(activity_name == "sit-to-stand") |>
-  dplyr::filter(exp_id == min(exp_id), user_id == min(user_id), window_id == min(window_id)) |>
+  dplyr::filter(exp_id == min(exp_id), user_id == min(user_id), seg_id == min(seg_id), window_id == min(window_id)) |>
   dplyr::mutate(tempo = dplyr::row_number()) # Cria um eixo de tempo sequencial
 
 # 3. Plota o sinal de aceleração

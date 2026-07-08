@@ -165,6 +165,7 @@ extract_features <- function(g) {
     activity_name = graph_attr(g, "activity_name"),
     user_id       = graph_attr(g, "user_id"),
     exp_id        = graph_attr(g, "exp_id"),
+    seg_id        = graph_attr(g, "seg_id"),
     window_id     = graph_attr(g, "window_id"),
     
     # Tamanho do grafo
@@ -239,7 +240,7 @@ extract_all_features <- function(
   message(sprintf(
     "\nFeatures extraídas: %d janelas × %d features em %.1fs",
     nrow(features_df),
-    ncol(features_df) - 5,   # desconta colunas de metadados
+    ncol(features_df) - 6,   # desconta colunas de metadados
     elapsed
   ))
   
